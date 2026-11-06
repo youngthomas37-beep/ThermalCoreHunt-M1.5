@@ -2,6 +2,9 @@
 
 M1.5 · 多热气流、随风漂移、随机布局、高度与云底。纯前端，无后端。
 
+**在线试玩**：<https://youngthomas37-beep.github.io/ThermalCoreHunt-M1.5/>
+**源码仓库**：<https://github.com/youngthomas37-beep/ThermalCoreHunt-M1.5>
+
 ## 运行
 
 ```bash
@@ -16,6 +19,15 @@ pnpm build      # tsc --noEmit + vite build
 pnpm sim        # 无头物理校验，输出 out/simcheck.json
 node tools/shot.mjs <url> <out.png>   # 无头截图
 ```
+
+## 发布到 GitHub Pages
+
+```powershell
+$env:VITE_BASE = '/ThermalCoreHunt-M1.5/'
+pnpm exec vite build --outDir docs
+```
+
+`docs/` 是 Pages 的发布目录（仓库 Settings → Pages → Deploy from branch `main` / `/docs`）。
 
 ## 操作
 
