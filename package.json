@@ -1,0 +1,19 @@
+{
+  "name": "thermal-core-hunt",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5199 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5199 --strictPort",
+    "sim": "tsx tools/simcheck.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "puppeteer-core": "^23.11.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

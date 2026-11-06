@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0a120c" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a120c'/%3E%3Cpath d='M4 14 Q16 4 28 14 Q16 22 4 14 Z' fill='%23f4f0e6'/%3E%3Ccircle cx='16' cy='24' r='2.4' fill='%23e0a44a'/%3E%3C/svg%3E"
+    />
+    <title>Thermal Core Hunt · M1.5</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="world"></canvas>
+
+      <header id="hud">
+        <div class="hud-left">
+          <div class="chip alt"><span>高度</span><b id="alt">---</b><span class="u">m</span></div>
+          <div class="row">
+            <div class="chip"><span>环区</span><b id="zone">外环</b></div>
+            <div class="chip"><span>时间</span><b id="clock" class="mono">00:00</b></div>
+          </div>
+          <div class="dock">
+            <button id="btnReset" title="重置 (R)" aria-label="重置">↺</button>
+            <button id="btnSound" title="声音 (M)" aria-label="声音">🔊</button>
+            <button id="btnDebug" title="调试 (D)" aria-label="调试">◐</button>
+          </div>
+        </div>
+
+        <button id="btnVis" class="visbtn" aria-pressed="true">
+          <span id="visIcon">👁</span>
+          <span id="visLabel">气流图 开</span>
+        </button>
+
+        <div class="hud-right">
+          <div class="vario">
+            <span class="cap">vario</span>
+            <b id="vario" class="mono">+0.0</b>
+            <span class="unit">m/s</span>
+          </div>
+          <div class="windtag">
+            <span id="windArrow" class="arrow">·</span>
+            <span id="windText">无风</span>
+          </div>
+        </div>
+      </header>
+
+      <div id="ladder" aria-hidden="true">
+        <div class="lcloud">☁</div>
+        <div class="lbar"><div id="ladderFill"></div><div id="ladderMark"></div></div>
+        <div class="lground">▲</div>
+      </div>
+
+      <div class="brake left">
+        <input id="brakeL" type="range" min="0" max="1" step="0.01" value="0" aria-label="左刹车" />
+        <span>左</span>
+      </div>
+      <div class="brake right">
+        <input id="brakeR" type="range" min="0" max="1" step="0.01" value="0" aria-label="右刹车" />
+        <span>右</span>
+      </div>
+
+      <section id="windPanel" aria-label="风设置">
+        <div class="wtop">
+          <span class="wlab">风</span>
+          <div class="speeds">
+            <button data-speed="2">2</button>
+            <button data-speed="4">4</button>
+            <button data-speed="6">6</button>
+            <span class="unit">m/s</span>
+          </div>
+        </div>
+        <div class="wgrid">
+          <button data-dir="315" aria-label="西北">↖</button>
+          <button data-dir="0" aria-label="北">↑</button>
+          <button data-dir="45" aria-label="东北">↗</button>
+          <button data-dir="270" aria-label="西">←</button>
+          <button data-dir="calm" class="calm" aria-label="无风">·</button>
+          <button data-dir="90" aria-label="东">→</button>
+          <button data-dir="225" aria-label="西南">↙</button>
+          <button data-dir="180" aria-label="南">↓</button>
+          <button data-dir="135" aria-label="东南">↘</button>
+        </div>
+      </section>
+
+      <div id="hint" class="hidden"></div>
+      <pre id="debug" class="hidden"></pre>
+
+      <div id="overlay">
+        <div class="card">
+          <div class="kicker">Thermal Core Hunt · M1.5</div>
+          <h1>找核</h1>
+          <p class="sub">听声音，找气流，盘到云底。</p>
+
+          <div class="scenarios" id="scenarios"></div>
+
+          <ul class="rules">
+            <li><b>滴滴越快</b>，上升越强；下沉是连续低音</li>
+            <li>左右刹车：拉得越深，转弯越急</li>
+            <li>气流可能是圆的、椭圆的、条形的，还会随风漂</li>
+            <li>伞角抖动指向有气流的一侧</li>
+            <li>爬到云底并停留 10 秒即通关；触地即结束</li>
+          </ul>
+
+          <button id="btnStart">开始飞行</button>
+          <p class="tiny">←/→ 或 A/D 刹车 · H 隐藏气流图 · R 重开 · M 静音</p>
+        </div>
+      </div>
+
+      <div id="endOverlay" class="hidden">
+        <div class="card">
+          <div class="kicker" id="endKicker">本局结束</div>
+          <h1 id="endTitle">触地</h1>
+          <p id="endText" class="sub"></p>
+          <div class="stats" id="endStats"></div>
+          <button id="btnAgain">再来一局</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
