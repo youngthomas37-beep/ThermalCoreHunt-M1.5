@@ -220,7 +220,7 @@ function updateHud(): void {
   if (!hidden && near) {
     const peak = sim.field.peakAt(near.thermal, sim.mode === 'fixed' ? sim.startZ : z, sim.mode === 'fixed');
     const ratio = sim.wHere / Math.max(0.2, peak);
-    zone = ratio > 0.65 ? 0 : ratio > 0.3 ? 1 : 2;
+    zone = ratio > 0.75 ? 0 : ratio > 0.35 ? 1 : 2;
   }
   if (hidden) {
     zoneEl.textContent = '—';

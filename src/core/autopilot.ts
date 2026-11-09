@@ -46,7 +46,7 @@ export function autopilot(sim: Sim): { uL: number; uR: number } {
   }
 
   const err = normalizeAngle(desired - g.psi);
-  const bankCmd = Math.max(-0.55, Math.min(0.55, err * 1.35));
+  const bankCmd = Math.max(-0.35, Math.min(0.35, err * 1.35));
   const ratio = Math.min(0.98, Math.abs(bankCmd) / g.p.bankMax);
   const diff = Math.sign(bankCmd) * ratio ** (1 / g.p.bankExpo);
 

@@ -15,6 +15,10 @@ export interface GliderParams {
   tauBank: number;
   brakeSpeedLoss: number;
   tauSpeed: number;
+  /** 超过 spiralFrom 后，每弧度额外下沉的系数 */
+  sinkSpiral: number;
+  /** 螺旋下沉起始坡度（rad） */
+  spiralFrom: number;
 }
 
 export const DEFAULT_GLIDER: GliderParams = {
@@ -23,12 +27,14 @@ export const DEFAULT_GLIDER: GliderParams = {
   sink0: 1.12,
   sinkA: 0.035,
   sinkB: 2.0,
-  bankMax: (45 * Math.PI) / 180,
+  bankMax: (30 * Math.PI) / 180,
   bankExpo: 1.5,
-  deadzone: 0.05,
-  tauBank: 0.55,
-  brakeSpeedLoss: 2.0,
+  deadzone: 0.06,
+  tauBank: 0.8,
+  brakeSpeedLoss: 2.2,
   tauSpeed: 0.6,
+  sinkSpiral: 35,
+  spiralFrom: (20 * Math.PI) / 180,
 };
 
 export interface GliderState {
@@ -86,8 +92,12 @@ export class Glider {
     const omega = (G * Math.tan(this.phi)) / Math.max(4, this.v);
     this.psi = normalizeAngle(this.psi + omega * dt);
 
+    const bankOver = Math.max(0, Math.abs(this.phi) - p.spiralFrom);
     const sink =
-      p.sink0 + p.sinkA * (this.v - p.vMinSink) ** 2 + p.sinkB * (1 / Math.cos(this.phi) - 1);
+      p.sink0 +
+      p.sinkA * (this.v - p.vMinSink) ** 2 +
+      p.sinkB * (1 / Math.cos(this.phi) - 1) +
+      p.sinkSpiral * bankOver * bankOver;
 
     const vario = wAir - sink;
     this.z = Math.max(0, this.z + vario * dt);

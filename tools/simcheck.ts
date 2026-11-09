@@ -60,7 +60,7 @@ for (let i = 0; i < steps; i++) {
   lastPsi = g.psi;
 }
 
-const analytic = [15, 25, 45].map((deg) => {
+const analytic = [15, 20, 25, 30, 45].map((deg) => {
   const phi = (deg * Math.PI) / 180;
   const v = 10;
   const radius = (v * v) / (9.80665 * Math.tan(phi));
@@ -72,7 +72,8 @@ const analytic = [15, 25, 45].map((deg) => {
       (
         DEFAULT_GLIDER.sink0 +
         DEFAULT_GLIDER.sinkA * (v - DEFAULT_GLIDER.vMinSink) ** 2 +
-        DEFAULT_GLIDER.sinkB * (1 / Math.cos(phi) - 1)
+        DEFAULT_GLIDER.sinkB * (1 / Math.cos(phi) - 1) +
+        DEFAULT_GLIDER.sinkSpiral * Math.max(0, phi - DEFAULT_GLIDER.spiralFrom) ** 2
       ).toFixed(2),
     ),
   };

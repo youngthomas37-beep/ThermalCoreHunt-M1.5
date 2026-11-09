@@ -13,10 +13,10 @@ export interface Scenario {
 }
 
 export const SCENARIOS: Scenario[] = [
-  { id: 'learn', name: '教学', startZ: 300, cloudbase: 800, w0: [1.6, 2.2], radius: [40, 60], count: 3 },
-  { id: 'standard', name: '标准', startZ: 500, cloudbase: 1100, w0: [2.0, 2.9], radius: [50, 75], count: 3 },
-  { id: 'strong', name: '强天', startZ: 500, cloudbase: 1500, w0: [2.9, 4.0], radius: [60, 90], count: 3 },
-  { id: 'low', name: '低空挑战', startZ: 100, cloudbase: 900, w0: [1.6, 2.2], radius: [40, 60], count: 3 },
+  { id: 'learn', name: '教学', startZ: 300, cloudbase: 800, w0: [1.6, 2.2], radius: [42, 58], count: 3 },
+  { id: 'standard', name: '标准', startZ: 500, cloudbase: 1100, w0: [2.0, 2.9], radius: [38, 55], count: 3 },
+  { id: 'strong', name: '强天', startZ: 500, cloudbase: 1500, w0: [2.9, 4.0], radius: [48, 65], count: 3 },
+  { id: 'low', name: '低空挑战', startZ: 100, cloudbase: 900, w0: [1.6, 2.2], radius: [34, 46], count: 3 },
 ];
 
 export const WORLD_W = 800;
@@ -42,7 +42,7 @@ export function generateField(seed: number, scenario: Scenario, wind: Wind): Gen
 
     // 主热气流：离起点 110–180 m，保证开局能看见
     const bearing = rng.next() * Math.PI * 2;
-    const dist = 110 + rng.next() * 70;
+    const dist = 140 + rng.next() * 100;
     thermals.push(
       makeThermal(
         rng,
@@ -76,8 +76,8 @@ export function generateField(seed: number, scenario: Scenario, wind: Wind): Gen
     const coverage = coverageAt(field, scenario.startZ);
 
     if (startW > 0.25) continue;
-    if (!nearest || nearest.distance < 80 || nearest.distance > 240) continue;
-    if (coverage < 0.1 || coverage > 0.45) continue;
+    if (!nearest || nearest.distance < 100 || nearest.distance > 260) continue;
+    if (coverage < 0.08 || coverage > 0.3) continue;
 
     return {
       seed,

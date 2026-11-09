@@ -137,7 +137,7 @@ export class ThermalField {
     }
 
     const r = Math.hypot(dx, dy);
-    const ring = -0.3 * Math.exp(-(((r - 1.8 * rz) / (0.9 * rz)) ** 2));
+    const ring = -0.45 * Math.exp(-(((r - 1.7 * rz) / (0.8 * rz)) ** 2));
 
     const p = this.renderSteady ? 1 : this.pulse(th, t);
     return p * peak * (core + ring);
