@@ -40,6 +40,26 @@ const visIcon = $<HTMLElement>('#visIcon');
 const visLabel = $<HTMLElement>('#visLabel');
 const soundBtn = $<HTMLButtonElement>('#btnSound');
 const scenariosEl = $<HTMLElement>('#scenarios');
+const soundStatus = $<HTMLElement>('#soundStatus');
+const btnSoundTest = $<HTMLButtonElement>('#btnSoundTest');
+const rewardOverlay = $<HTMLElement>('#rewardOverlay');
+const rewardIntro = $<HTMLElement>('#rewardIntro');
+const rewardQr = $<HTMLImageElement>('#rewardQr');
+const rewardFallback = $<HTMLElement>('#rewardFallback');
+const rewardTabs = $<HTMLElement>('#rewardTabs');
+const rewardNote = $<HTMLElement>('#rewardNote');
+const rewardShare = $<HTMLButtonElement>('#rewardShare');
+const rewardStar = $<HTMLAnchorElement>('#rewardStar');
+
+const REWARD = {
+  wechat: `${import.meta.env.BASE_URL}reward/wechat.png`,
+  alipay: `${import.meta.env.BASE_URL}reward/alipay.png`,
+  repo: 'https://github.com/youngthomas37-beep/ThermalCoreHunt-M1.5',
+};
+const REWARD_TEXT = {
+  tip: 'Thermal Core Hunt 是免费、无广告的个人项目。如果它帮你找到了气流，欢迎请作者喝杯咖啡；不打赏也没关系，玩得开心就好。',
+  support: 'Thermal Core Hunt 是免费、无广告的个人项目。如果它帮你找到了气流，欢迎给仓库点个 Star，或把游戏分享给朋友。',
+};
 
 const renderer = new WorldRenderer(canvas);
 renderer.resize();
@@ -125,6 +145,64 @@ function readInput(): { uL: number; uR: number } {
   if (keys.right) uR = 1;
   return { uL, uR };
 }
+
+/**
+ * 按住转弯、松开回中。
+ * 原生 range 只负责显示；指针事件绑在外层容器上，
+ * 这样按住轨道任意深度都能转弯，松手立刻归零。
+ */
+function setupBrake(el: HTMLElement, input: HTMLInputElement): void {
+  let active: number | null = null;
+
+  const setFromPointer = (e: PointerEvent): void => {
+    const r = input.getBoundingClientRect();
+    if (r.height < 1) return;
+    const v = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    input.value = String(v);
+    el.setAttribute('aria-valuenow', String(Math.round(v * 100)));
+    lastInput = performance.now();
+    idleStage = 0;
+  };
+
+  const release = (): void => {
+    if (active === null) return;
+    active = null;
+    el.classList.remove('holding');
+    input.value = '0';
+    el.setAttribute('aria-valuenow', '0');
+    lastInput = performance.now();
+  };
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    active = e.pointerId;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      /* 某些浏览器在 pointerdown 外调用会抛错，忽略 */
+    }
+    el.classList.add('holding');
+    setFromPointer(e);
+    e.preventDefault();
+  });
+
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== active) return;
+    setFromPointer(e);
+    e.preventDefault();
+  });
+
+  const end = (e: PointerEvent): void => {
+    if (e.pointerId === active) release();
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('lostpointercapture', release);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+setupBrake($<HTMLElement>('.brake.left'), brakeL);
+setupBrake($<HTMLElement>('.brake.right'), brakeR);
 
 function updateHud(): void {
   if (!sim) return;
@@ -254,8 +332,13 @@ document.querySelectorAll<HTMLButtonElement>('.wgrid button').forEach((b) => {
 setWind(0, 0);
 
 $<HTMLButtonElement>('#btnStart').addEventListener('click', () => {
-  void audio.start();
+  void audio.start().then(() => {
+    soundStatus.textContent = audio.running ? '声音已开启' : '声音被拦截，请再点一次';
+  });
   newRun();
+  window.setTimeout(() => {
+    if (!audio.running) hint('如果听不到声音：请关闭手机静音键，再点一下屏幕');
+  }, 700);
 });
 
 $<HTMLButtonElement>('#btnAgain').addEventListener('click', () => newRun());
@@ -272,6 +355,13 @@ $<HTMLButtonElement>('#btnReset').addEventListener('click', () => {
 soundBtn.addEventListener('click', () => {
   audio.setEnabled(!audio.enabled);
   soundBtn.textContent = audio.enabled ? '🔊' : '🔇';
+  if (audio.enabled) void audio.start();
+});
+
+btnSoundTest.addEventListener('click', async () => {
+  soundStatus.textContent = '正在测试…';
+  const ok = await audio.test();
+  soundStatus.textContent = ok ? '声音已开启' : '被浏览器拦截，请再点一次';
 });
 
 $<HTMLButtonElement>('#btnDebug').addEventListener('click', () => {
@@ -279,12 +369,121 @@ $<HTMLButtonElement>('#btnDebug').addEventListener('click', () => {
   debugEl.classList.toggle('hidden', !debug);
 });
 
-brakeL.addEventListener('input', () => {
-  lastInput = performance.now();
+type RewardChannel = 'wechat' | 'alipay';
+const rewardReady: Record<RewardChannel, boolean | null> = { wechat: null, alipay: null };
+let rewardProbe: Promise<void> | null = null;
+
+function probeReward(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
+
+function setRewardFallback(on: boolean): void {
+  rewardFallback.classList.toggle('hidden', !on);
+  rewardQr.classList.toggle('hidden', on);
+  rewardNote.classList.toggle('hidden', on);
+}
+
+function setRewardChannel(ch: RewardChannel): void {
+  rewardTabs.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+    const c: RewardChannel = b.dataset.channel === 'alipay' ? 'alipay' : 'wechat';
+    b.classList.toggle('active', c === ch);
+    b.disabled = rewardReady[c] === false;
+  });
+  rewardQr.classList.remove('hidden');
+  rewardFallback.classList.add('hidden');
+  rewardNote.classList.remove('hidden');
+  rewardQr.src = ch === 'wechat' ? REWARD.wechat : REWARD.alipay;
+}
+
+function prepareReward(): Promise<void> {
+  if (rewardProbe) return rewardProbe;
+  rewardProbe = (async () => {
+    const [w, a] = await Promise.all([probeReward(REWARD.wechat), probeReward(REWARD.alipay)]);
+    rewardReady.wechat = w;
+    rewardReady.alipay = a;
+    if (!w && !a) {
+      rewardTabs.classList.add('hidden');
+      rewardNote.classList.add('hidden');
+      rewardIntro.textContent = REWARD_TEXT.support;
+      const label = rewardFallback.querySelector('b');
+      if (label) label.textContent = '支持这个项目';
+      const detail = rewardFallback.querySelector('span');
+      if (detail) detail.textContent = '给仓库点个 Star，或把游戏分享给朋友，就是很大的支持。';
+      setRewardFallback(true);
+      return;
+    }
+    rewardIntro.textContent = REWARD_TEXT.tip;
+    rewardTabs.classList.remove('hidden');
+    rewardNote.classList.remove('hidden');
+    setRewardChannel(w ? 'wechat' : 'alipay');
+  })();
+  return rewardProbe;
+}
+
+function openReward(): void {
+  rewardOverlay.classList.remove('hidden');
+  rewardTabs.classList.add('hidden');
+  rewardNote.classList.add('hidden');
+  setRewardFallback(true);
+  const label = rewardFallback.querySelector('b');
+  if (label) label.textContent = '正在准备…';
+  void prepareReward().then(() => {
+    if (!rewardReady.wechat && !rewardReady.alipay) {
+      const b = rewardFallback.querySelector('b');
+      if (b) b.textContent = '支持这个项目';
+    }
+  });
+}
+
+function closeReward(): void {
+  rewardOverlay.classList.add('hidden');
+}
+
+$<HTMLButtonElement>('#btnReward').addEventListener('click', openReward);
+$<HTMLButtonElement>('#btnRewardClose').addEventListener('click', closeReward);
+rewardOverlay.addEventListener('click', (e) => {
+  if (e.target === rewardOverlay) closeReward();
 });
-brakeR.addEventListener('input', () => {
-  lastInput = performance.now();
+rewardTabs.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+  b.addEventListener('click', () => {
+    setRewardChannel(b.dataset.channel === 'alipay' ? 'alipay' : 'wechat');
+  });
 });
+rewardQr.addEventListener('load', () => setRewardFallback(false));
+rewardQr.addEventListener('error', () => setRewardFallback(true));
+rewardStar.href = REWARD.repo;
+
+rewardShare.addEventListener('click', async () => {
+  const url = location.href.split('?')[0];
+  const data = {
+    title: 'Thermal Core Hunt',
+    text: '听蜂鸣找热气流，盘到云底。',
+    url,
+  };
+  if (navigator.share) {
+    try {
+      await navigator.share(data);
+      return;
+    } catch {
+      /* 用户取消，退回复制 */
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    rewardShare.textContent = '链接已复制';
+  } catch {
+    rewardShare.textContent = '复制失败，请手动复制';
+  }
+  window.setTimeout(() => {
+    rewardShare.textContent = '分享给朋友';
+  }, 1800);
+});
+
 
 window.addEventListener('keydown', (e) => {
   lastInput = performance.now();
@@ -301,6 +500,8 @@ window.addEventListener('keydown', (e) => {
     if (phase !== 'menu') newRun();
   } else if (e.key === 'm' || e.key === 'M') {
     soundBtn.click();
+  } else if (e.key === 'Escape') {
+    closeReward();
   }
 });
 
@@ -312,6 +513,7 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('pointerdown', () => {
   lastInput = performance.now();
   idleStage = 0;
+  if (!audio.running) void audio.start();
 });
 
 window.addEventListener('resize', () => {

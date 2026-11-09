@@ -22,9 +22,15 @@ node tools/shot.mjs <url> <out.png>   # 无头截图
 
 ## 发布到 GitHub Pages
 
+不要把 Vite 直接构建到 `docs/`：那会清空同目录下的 `manual/` 和 `manual-en/`。
+先构建到临时目录，再只复制站点文件：
+
 ```powershell
 $env:VITE_BASE = '/ThermalCoreHunt-M1.5/'
-pnpm exec vite build --outDir docs
+pnpm exec vite build --outDir dist-pages
+Remove-Item docs/assets -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item dist-pages/index.html docs/index.html -Force
+Copy-Item dist-pages/assets docs/assets -Recurse -Force
 ```
 
 `docs/` 是 Pages 的发布目录（仓库 Settings → Pages → Deploy from branch `main` / `/docs`）。
@@ -33,12 +39,29 @@ pnpm exec vite build --outDir docs
 
 | 输入 | 作用 |
 |---|---|
-| 左/右刹车滑块 | 向下拉，拉得越深转弯越急（45° 上限、指数曲线） |
+| 左/右刹车 | **按住下滑转弯，松手自动回中**；按得越深转弯越急（45° 上限、指数曲线） |
 | `←` / `→` 或 `A` / `D` | 左/右刹车 |
 | `H` 或顶部按钮 | 隐藏 / 显示气流图 |
 | `R` | 换一个随机种子重开 |
 | `M` | 静音 |
 | 底部风面板 | 2/4/6 m/s + 九宫格风向（中间 = 无风） |
+
+## 声音
+
+- 开始页有「试听声音」按钮，点一下就能确认浏览器是否放行音频。
+- iOS 的侧边静音键会静音网页音频；代码会用 `navigator.audioSession = 'playback'` 尝试绕过，仍然无声时请关闭静音键。
+- 首次触摸页面时就会解锁 `AudioContext`，不需要先点开始。
+
+## 支持作者
+
+右上角 ♥ 打开支持面板。默认显示「给仓库点 Star / 分享给朋友」；把收款码图片放到：
+
+```text
+public/reward/wechat.png
+public/reward/alipay.png
+```
+
+重新构建后，面板会自动出现「微信 / 支付宝」赞赏码。收款码只做展示，不接支付 API，零后端、零手续费。
 
 ## 玩法
 
@@ -65,4 +88,5 @@ tools           simcheck / 截图 / 探针
 
 - 当前是 **固定切片**（A 版）：整局使用起始高度的水平切片。`field.ts` 已支持按 z 取剖面（`fixed=false`），B 版留给 v1.5。
 - 热气流漂移系数固定 0.35；挑战模式尚未锁定风与场景。
+- 支持面板已就位：未配置收款码时自动降级为 Star / 分享，不会出现坏掉的二维码。
 - 还没有计分、排行榜、复盘与真机触觉反馈。
