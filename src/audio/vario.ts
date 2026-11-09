@@ -41,7 +41,13 @@ export class VarioAudio {
     const Ctor = w.AudioContext ?? w.webkitAudioContext;
     if (!Ctor) return null;
 
-    const ctx = new Ctor({ latencyHint: 'interactive' });
+    let ctx: AudioContext;
+    try {
+      ctx = new Ctor({ latencyHint: 'interactive' });
+    } catch {
+      // 老版本 Safari 不接受 options
+      ctx = new Ctor();
+    }
     const master = ctx.createGain();
     master.gain.value = this.enabled ? this.volume : 0;
     master.connect(ctx.destination);
