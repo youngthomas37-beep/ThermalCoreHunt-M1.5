@@ -22,15 +22,13 @@ node tools/shot.mjs <url> <out.png>   # 无头截图
 
 ## 发布到 GitHub Pages
 
-不要把 Vite 直接构建到 `docs/`：那会清空同目录下的 `manual/` 和 `manual-en/`。
-先构建到临时目录，再只复制站点文件：
+先构建到临时目录，再复制站点文件（`public/reward/` 里的收款码也会一起发布）：
 
 ```powershell
 $env:VITE_BASE = '/ThermalCoreHunt-M1.5/'
 pnpm exec vite build --outDir dist-pages
 Remove-Item docs/assets -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item dist-pages/index.html docs/index.html -Force
-Copy-Item dist-pages/assets docs/assets -Recurse -Force
+Copy-Item dist-pages/* docs/ -Recurse -Force
 ```
 
 `docs/` 是 Pages 的发布目录（仓库 Settings → Pages → Deploy from branch `main` / `/docs`）。
