@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0a120c" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a120c'/%3E%3Cpath d='M4 14 Q16 4 28 14 Q16 22 4 14 Z' fill='%23f4f0e6'/%3E%3Ccircle cx='16' cy='24' r='2.4' fill='%23e0a44a'/%3E%3C/svg%3E"
+    />
+    <title>Thermal Core Hunt · M1.5</title>
+    <script type="module" crossorigin src="/ThermalCoreHunt-M1.5/en/assets/index-DfQt9Hrz.js"></script>
+    <link rel="stylesheet" crossorigin href="/ThermalCoreHunt-M1.5/en/assets/index-BkAP-NeH.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="world"></canvas>
+
+      <header id="hud">
+        <div class="hud-left">
+          <div class="chip alt"><span>ALT</span><b id="alt">---</b><span class="u">m</span></div>
+          <div class="row">
+            <div class="chip"><span>ZONE</span><b id="zone">OUTER</b></div>
+            <div class="chip"><span>TIME</span><b id="clock" class="mono">00:00</b></div>
+          </div>
+          <div class="dock">
+            <button id="btnReset" title="Reset (R)" aria-label="Reset">↺</button>
+            <button id="btnSound" title="Sound (M)" aria-label="Sound">🔊</button>
+            <button id="btnReward" title="Support the author" aria-label="Support the author">♥</button>
+            <button id="btnDebug" title="Debug (D)" aria-label="Debug">◐</button>
+          </div>
+        </div>
+
+        <button id="btnVis" class="visbtn" aria-pressed="true">
+          <span id="visIcon">👁</span>
+          <span id="visLabel">THERMALS ON</span>
+        </button>
+
+        <div class="hud-right">
+          <div class="vario">
+            <span class="cap">vario</span>
+            <b id="vario" class="mono">+0.0</b>
+            <span class="unit">m/s</span>
+          </div>
+          <div class="windtag">
+            <span id="windArrow" class="arrow">·</span>
+            <span id="windText">CALM</span>
+          </div>
+        </div>
+      </header>
+
+      <div id="ladder" aria-hidden="true">
+        <div class="lcloud">☁</div>
+        <div class="lbar"><div id="ladderFill"></div><div id="ladderMark"></div></div>
+        <div class="lground">▲</div>
+      </div>
+
+      <div class="brake left" role="slider" aria-label="Left brake. Hold and pull down to turn; release to center." aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" title="Hold and pull down to turn; release to center.">
+        <input id="brakeL" type="range" min="0" max="1" step="0.01" value="0" aria-hidden="true" tabindex="-1" />
+        <span>L</span>
+      </div>
+      <div class="brake right" role="slider" aria-label="Right brake. Hold and pull down to turn; release to center." aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" title="Hold and pull down to turn; release to center.">
+        <input id="brakeR" type="range" min="0" max="1" step="0.01" value="0" aria-hidden="true" tabindex="-1" />
+        <span>R</span>
+      </div>
+
+      <section id="windPanel" aria-label="Wind settings">
+        <div class="wtop">
+          <span class="wlab">WIND</span>
+          <div class="speeds">
+            <button data-speed="2">2</button>
+            <button data-speed="4">4</button>
+            <button data-speed="6">6</button>
+            <span class="unit">m/s</span>
+          </div>
+        </div>
+        <div class="wgrid">
+          <button data-dir="315" aria-label="Northwest">↖</button>
+          <button data-dir="0" aria-label="North">↑</button>
+          <button data-dir="45" aria-label="Northeast">↗</button>
+          <button data-dir="270" aria-label="West">←</button>
+          <button data-dir="calm" class="calm" aria-label="Calm">·</button>
+          <button data-dir="90" aria-label="East">→</button>
+          <button data-dir="225" aria-label="Southwest">↙</button>
+          <button data-dir="180" aria-label="South">↓</button>
+          <button data-dir="135" aria-label="Southeast">↘</button>
+        </div>
+      </section>
+
+      <div id="hint" class="hidden"></div>
+      <pre id="debug" class="hidden"></pre>
+
+      <div id="overlay">
+        <div class="card">
+          <div class="kicker">Thermal Core Hunt · M1.5</div>
+          <h1>Find the Core</h1>
+          <p class="sub">Listen. Find the lift. Climb to cloudbase.</p>
+
+          <div class="scenarios" id="scenarios"></div>
+
+          <ul class="rules">
+            <li><b>Faster beeps</b> mean stronger lift; sink is a continuous low tone.</li>
+            <li>Brakes: hold and pull down to turn; release to center.</li>
+            <li>Thermals can be round, elliptical, or elongated, and they drift with the wind.</li>
+            <li>Wingtip shake points toward lift.</li>
+            <li>Reach cloudbase and hold for 10 seconds to win; ground contact ends the flight.</li>
+          </ul>
+
+          <div class="soundcheck">
+            <button id="btnSoundTest" type="button">🔊 Test sound</button>
+            <span id="soundStatus">On a phone, turn off the silent switch.</span>
+          </div>
+
+          <button id="btnStart">Start flight</button>
+          <p class="tiny">←/→ or A/D brakes · H hide thermals · R restart · M mute</p>
+        </div>
+      </div>
+
+      <div id="endOverlay" class="hidden">
+        <div class="card">
+          <div class="kicker" id="endKicker">Flight over</div>
+          <h1 id="endTitle">Ground contact</h1>
+          <p id="endText" class="sub"></p>
+          <div class="stats" id="endStats"></div>
+          <button id="btnAgain">Fly again</button>
+        </div>
+      </div>
+
+      <div id="rewardOverlay" class="hidden">
+        <div class="card reward-card">
+          <button id="btnRewardClose" class="close" aria-label="Close">×</button>
+          <div class="kicker">SUPPORT · THE AUTHOR</div>
+          <h1>Thank you for flying here</h1>
+          <p class="sub" id="rewardIntro">
+            Thermal Core Hunt is a free, ad-free personal project. If it helped you find lift,
+            you can buy the author a coffee. No tip is fine too; enjoy the flight.
+          </p>
+
+          <div class="reward-tabs" id="rewardTabs">
+            <button type="button" data-channel="wechat" class="active">WeChat</button>
+            <button type="button" data-channel="alipay">Alipay</button>
+          </div>
+
+          <div class="reward-stage">
+            <img id="rewardQr" alt="Tip QR code" />
+            <div id="rewardFallback" class="reward-fallback hidden">
+              <b>Tip code coming soon</b>
+              <span>The author has not uploaded a payment code yet. You can star the repository or share the game instead.</span>
+            </div>
+          </div>
+
+          <p class="reward-note" id="rewardNote">Scan to buy the author a coffee</p>
+
+          <div class="reward-alt">
+            <a id="rewardStar" href="https://github.com/youngthomas37-beep/ThermalCoreHunt-M1.5" target="_blank" rel="noopener">★ Star the repository</a>
+            <button id="rewardShare" type="button">Share with a friend</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
